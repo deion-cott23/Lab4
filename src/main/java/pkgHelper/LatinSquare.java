@@ -6,6 +6,7 @@ import java.util.Arrays;
 import org.apache.commons.lang.ArrayUtils;
 
 import pkgEnum.ePuzzleViolation;
+import pkgGame.Sudoku;
 
 public class LatinSquare {
 

@@ -500,11 +500,17 @@ public class Sudoku extends LatinSquare {
 			ar[i] = a;
 		}
 	}
-
-	public HashSet getAllValidCellValues(int iRow, int iCol) {
+	
+	public HashSet<Integer> getAllValidCellValues(int iRow, int iCol) {
 		Cell newCell = new Cell(iRow, iCol);
 		newCell.setLstValidValues();
-		HashSet cellHashSet = new HashSet<Integer>(newCell.getLstValidValues());
+		HashSet<Integer> cellHashSet = new HashSet<Integer>(newCell.getLstValidValues());
+		return cellHashSet;
+	}
+
+	public HashSet<Integer> getAllValidCellValues(Cell newCell,int iRow, int iCol) {
+		newCell.setLstValidValues();
+		HashSet<Integer> cellHashSet = new HashSet<Integer>(newCell.getLstValidValues());
 		return cellHashSet;
 		
 	}
@@ -517,12 +523,30 @@ public class Sudoku extends LatinSquare {
 	 * @since Lab #4
 	 */
 	public void SetCells() {
-		for (int cellNum=0; cellNum < iSize*iSize; cellNum++) {
-			Cell newCell = new Cell(cellNum / iSize, cellNum % iSize);
-			Integer num = new Integer(cellNum);
-			cells.put(newCell.hashCode(), getAllValidCellValues(newCell.getiRow(), newCell.iCol));
+		for (int iRow = 0; iRow < iSize; iRow++) {
+			for (int iCol = 0; iCol < iSize; iCol++) {
+				Sudoku.Cell newCell = new Sudoku.Cell(iRow, iCol);
+				newCell.setLstValidValues();
+				newCell.ShuffleValidValues();
+				cells.put(newCell.hashCode(), newCell);
+			}
 		}
 	}
+	
+	private boolean fillRemaining (Sudoku.Cell c) {
+		if (c == null)
+			return true;
+		for (int num : c.getLstValidValues()) {
+			if (isValidValue(c, num)) {
+				this.getPuzzle()[c.getiRow()][c.getiCol()] = num;
+				
+				if (fillRemaining(c.GetNextCell(c, num)))
+					return true;
+				this.getPuzzle()[c.getiRow()][c.getiCol()] = 0;
+				
+			}
+		}
+		return false;
 
 	/**
 	 * FillRemaining This method will set the zero value cells with a valid value.
@@ -532,8 +556,6 @@ public class Sudoku extends LatinSquare {
 	 * @since Lab #4
 	 * @param cell
 	 */
-//	private void fillRemaining() {
-//		//TODO
-//	}
+	}
 
 }
