@@ -44,76 +44,118 @@ public class Sudoku extends LatinSquare {
 	 * @version 1.2
 	 * @since Lab #2
 	 */
-	private HashMap<Integer, HashSet> cells = new HashMap();
+	public HashMap<Integer, Sudoku.Cell> cells = new HashMap<Integer, Sudoku.Cell>();
+
 	/**
-	 * Cell a class which has one attribute, HashSet<Integers>, of possible values for that cell.
+	 * Cell a class which has one attribute, HashSet<Integers>, of possible values
+	 * for that cell.
 	 * 
 	 * @version 1.0
 	 * @since Lab #4
-	 */	
-	public class Cell {
+	 */
+	private class Cell {
 		private int iCol;
 		private int iRow;
-		private ArrayList<Integer> lstValidValues = new ArrayList<Integer>();
-		
+		private ArrayList<Integer> lstValidValues = new ArrayList<Integer>(); // This holds our valid values after diagnols are made
+
 		public Cell(int iRow, int iCol) {
+			super();
 			this.iRow = iRow;
 			this.iCol = iCol;
 		}
+
 		public int getiCol() {
 			return iCol;
 		}
+
 		public int getiRow() {
 			return iRow;
 		}
+
 		@Override
 		public int hashCode() {
-			// TODO Auto-generated method stub
 			return Objects.hash(iRow, iCol);
 		}
+
 		@Override
-		public boolean equals(Object obj) {
-			Cell cell1 = (Cell)obj;
+		public boolean equals(Object obj) { //we're overriding the hash so we can put cells in hashmaps
+			if (obj == this) {
+				return true;
+			}
+			if (!(obj instanceof Cell)) {
+				return false;
+			}
+
+			Cell cell1 = (Cell) obj;
 			return (cell1.iRow == this.iRow) && (cell1.iCol == this.iCol);
 		}
+
 		public ArrayList<Integer> getLstValidValues() {
 			return lstValidValues;
 		}
+
 		public void setLstValidValues() {
 			HashSet<Integer> validHash = new HashSet<Integer>();
-			HashSet<Integer> invalidHash = new HashSet<Integer>();
-			for (int i=1; i<=iSize; i++) {
-				if (isValidValue(iRow, iCol, i)) {
-					validHash.add(i);
+
+			for (int i = 1; i <= iSize; i++) {			//for every possible value in the puzzle
+				if (isValidValue(iRow, iCol, i)) {		//if it works in the puzzle
+					validHash.add(i);					//it goes in the hashset of valid values
 				}
 			}
 			lstValidValues = new ArrayList<Integer>(validHash);
 			lstValidValues.trimToSize();
-			
+
 		}
+
 		public void ShuffleValidValues() {
-			int[] arr = new int[lstValidValues.size()];
-			for(int i=0; i<lstValidValues.size(); i++) {
+			int[] arr = new int[lstValidValues.size()];				//shuffling our valid values by plugging it in an array, 
+			for (int i = 0; i < lstValidValues.size(); i++) {			// using shuffle, then plugging it back
 				arr[i] = lstValidValues.get(i);
 			}
 			shuffleArray(arr);
 			lstValidValues.clear();
-			for(int i=0; i<arr.length; i++) {
+			for (int i = 0; i < arr.length; i++) {
 				lstValidValues.add(i, arr[i]);
 			}
-			
+
 		}
-		public Sudoku.Cell GetNextCell(Sudoku.Cell c, int iSize) {
-			if (iCol < iSize - 1) {
-				Sudoku.Cell nextCell = new Sudoku.Cell(iRow, iCol +1);
-				return nextCell;
-			} else {
-				Sudoku.Cell nextCell = new Sudoku.Cell(iRow +1, 0);
-				return nextCell;
+		/**
+		 * Sudoku.Cell - for Lab #4
+		 * 
+		 * 
+		 * @version 1.1
+		 * @since Lab #4
+		 * @param c - 
+		 */
+		public Sudoku.Cell GetNextCell(Sudoku.Cell c) {
+
+			int row = c.getiRow();								//current row
+			int col = c.getiCol() + 1;							//next col
+
+			if (col >= iSize && row == iSize - iSqrtSize) {		//if we're out of the puzzle
+				return null;									//return null to end fillRemaining
+			}
+			if (col >= iSize) {									//if we're at the end of the row, go next row
+				row++;
+				col = 0;
+			}
+			while (row < iSqrtSize && col < iSqrtSize) {		//if we're in the first diagonal
+				col++;												// shift right
+			}
+			while (row >= iSqrtSize && row < iSize - iSqrtSize && col >= iSqrtSize && col < iSize - iSqrtSize) {	//if we're in the middle diagonal
+				col++;																			// shift right
+			}
+			while (row >= iSize - iSqrtSize && row < iSize && col >= iSize - iSqrtSize && col < iSize) {	//if we're in the last diagonal
+				col++;																//shift to the end
+			}
+			if (col >= iSize) {									//if we're at the end of the row, go next row
+				row++;
+				col = 0;
 			}
 
-		}
+			return cells.get(Objects.hash(row , col));			//return the next cell
 
+		}
 	}
 
 	/**
@@ -142,6 +184,8 @@ public class Sudoku extends LatinSquare {
 		int[][] puzzle = new int[iSize][iSize];
 		super.setLatinSquare(puzzle);
 		FillDiagonalRegions();
+		SetCells();
+		fillRemaining(cells.get(Objects.hash(0, iSqrtSize)));
 	}
 
 	/**
@@ -154,7 +198,7 @@ public class Sudoku extends LatinSquare {
 	 * @throws Exception will be thrown if the length of the puzzle do not have a
 	 *                   whole number square root
 	 */
-	public Sudoku(int[][] puzzle) /*throws Exception*/{
+	public Sudoku(int[][] puzzle) /* throws Exception */ {
 		super(puzzle);
 		this.iSize = puzzle.length;
 		double SQRT = Math.sqrt(iSize);
@@ -357,6 +401,30 @@ public class Sudoku extends LatinSquare {
 		return true;
 	}
 
+	/**
+	 * isValidValue - test to see if a given value would 'work' for a given cell
+	 * 
+	 * @version 1.2
+	 * @since Lab #2
+	 * @param        Sudoku.Cell c
+	 * @param iValue given value
+	 * @return - returns 'true' if the proposed value is valid for the cell
+	 */
+	public boolean isValidValue(Sudoku.Cell c, int iValue) {
+
+		if (!isValidColumnValue(c.getiCol(), iValue)) {
+			return false;
+		}
+		if (!isValidRowValue(c.getiRow(), iValue)) {
+			return false;
+		}
+		if (!isValidRegionValue(c.getiRow(), c.getiCol(), iValue)) {
+			return false;
+		}
+
+		return true;
+	}
+
 	// Tests to see if a given value is already in the cell's column
 	public boolean isValidColumnValue(int iCol, int iValue) {
 		if (doesElementExist(super.getColumn(iCol), iValue))
@@ -481,6 +549,16 @@ public class Sudoku extends LatinSquare {
 			}
 		}
 	}
+	/**
+	 * ShowAvailableValues Does nothing. Added as per Sudoku file.
+	 * 
+	 * @version 1.0
+	 * @since Lab #4
+	 * @param null
+	 */
+	private void ShowAvailableValues() {
+		
+	}
 
 	/**
 	 * shuffleArray this method will shuffle a given one-dimension array
@@ -500,62 +578,65 @@ public class Sudoku extends LatinSquare {
 			ar[i] = a;
 		}
 	}
-	
-	public HashSet<Integer> getAllValidCellValues(int iRow, int iCol) {
-		Cell newCell = new Cell(iRow, iCol);
-		newCell.setLstValidValues();
-		HashSet<Integer> cellHashSet = new HashSet<Integer>(newCell.getLstValidValues());
-		return cellHashSet;
-	}
-
-	public HashSet<Integer> getAllValidCellValues(Cell newCell,int iRow, int iCol) {
-		newCell.setLstValidValues();
-		HashSet<Integer> cellHashSet = new HashSet<Integer>(newCell.getLstValidValues());
-		return cellHashSet;
-		
-	}
 	/**
-	 * SetCells Builds a HashMap of cells of possible values for a cell. It
-	 * can build a HashSet from 1 to iSize, then use isValid method to remove ints
-	 * that wouldn’t work.
+	 * getAllValidCellValues getAllCellNumbers - This method will return all the valid values remaining for a given cell (by Col/Row).
+	 * For example, Cell [0,0] shold return [3,4]
 	 * 
 	 * @version 1.0
 	 * @since Lab #4
 	 */
-	public void SetCells() {
-		for (int iRow = 0; iRow < iSize; iRow++) {
-			for (int iCol = 0; iCol < iSize; iCol++) {
-				Sudoku.Cell newCell = new Sudoku.Cell(iRow, iCol);
-				newCell.setLstValidValues();
-				newCell.ShuffleValidValues();
-				cells.put(newCell.hashCode(), newCell);
+	private HashSet<Integer> getAllValidCellValues(int iRow, int iCol) {
+		HashSet<Integer> cellHashSet = new HashSet<Integer>();
+		Cell newCell = cells.get(Objects.hash(iRow, iCol));
+		newCell.setLstValidValues();
+		if (this.getLatinSquare()[iRow][iCol] != 0) {
+			cellHashSet.add(this.getLatinSquare()[iRow][iCol]);
+		} else {
+			cellHashSet = new HashSet<Integer>(newCell.getLstValidValues());
+		}
+		return cellHashSet;
+
+	}
+
+	/**
+	 * SetCells Builds a HashMap of cells of possible values for a cell. It can
+	 * build a HashSet from 1 to iSize, then use isValid method to remove ints that
+	 * wouldn’t work.
+	 * 
+	 * @version 1.0
+	 * @since Lab #4
+	 */
+	private void SetCells() {				
+		for (int iRow = 0; iRow < iSize; iRow++) {					//for every row
+			for (int iCol = 0; iCol < iSize; iCol++) {				//for every col
+				Sudoku.Cell newCell = new Sudoku.Cell(iRow, iCol);	//our new cell is made
+				newCell.setLstValidValues();						//our new cell gets valid values
+				newCell.ShuffleValidValues();						//its values are shuffled
+				cells.put(newCell.hashCode(), newCell);				//our new cell goes into the hashmap
 			}
 		}
 	}
-	
-	private boolean fillRemaining (Sudoku.Cell c) {
-		if (c == null)
+	/**
+	 * fillRemaining - Recursive method to fill each cell... one by one... backtracking
+	 * if the given value doesn't fit in the cell.
+	 * 
+	 * @version 1.0
+	 * @since Lab #4
+	 */
+	private boolean fillRemaining(Sudoku.Cell newCell) {
+		if (newCell == null)													//Recursion ends when the cell is out of the puzzle (null)
 			return true;
-		for (int num : c.getLstValidValues()) {
-			if (isValidValue(c, num)) {
-				this.getPuzzle()[c.getiRow()][c.getiCol()] = num;
-				
-				if (fillRemaining(c.GetNextCell(c, num)))
+		for (int val : newCell.getLstValidValues()) {							//Grab the first or next valid at start (setcell)
+			if (isValidValue(newCell, val)) {									//checks if our value works at this time
+				this.getPuzzle()[newCell.getiRow()][newCell.getiCol()] = val;	//Set this value in the puzzle spot
+									
+				if (fillRemaining(newCell.GetNextCell(newCell)))				//if the next cell has a value that will work, return true
 					return true;
-				this.getPuzzle()[c.getiRow()][c.getiCol()] = 0;
-				
+				this.getPuzzle()[newCell.getiRow()][newCell.getiCol()] = 0;		//if next cell has no values that work, we set this to 0 and go back.
+
 			}
 		}
 		return false;
 
-	/**
-	 * FillRemaining This method will set the zero value cells with a valid value.
-	 * Uses pickValue for every cell that is zero.
-	 * 
-	 * @version 1.0
-	 * @since Lab #4
-	 * @param cell
-	 */
 	}
-
 }
